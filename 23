@@ -1,0 +1,66 @@
+#include <stdlib.h>
+
+// Helper function to merge and count valid range sums
+long long mergeAndCount(long long* sums, int left, int right, int lower, int upper, long long* temp) {
+    if (left >= right) return 0;
+
+    int mid = left + (right - left) / 2;
+    // Count combinations within left half and right half recursively
+    long long count = mergeAndCount(sums, left, mid, lower, upper, temp) +
+                      mergeAndCount(sums, mid + 1, right, lower, upper, temp);
+
+    // Two pointers tracking the valid range window in the right half
+    int lowBound = mid + 1;
+    int highBound = mid + 1;
+    
+    // Count valid range sums crossing the midpoint
+    for (int i = left; i <= mid; i++) {
+        while (lowBound <= right && sums[lowBound] - sums[i] < lower) {
+            lowBound++;
+        }
+        while (highBound <= right && sums[highBound] - sums[i] <= upper) {
+            highBound++;
+        }
+        count += (highBound - lowBound);
+    }
+
+    // Standard merge step to maintain sorted order of prefix sums
+    int i = left, j = mid + 1, k = left;
+    while (i <= mid && j <= right) {
+        if (sums[i] <= sums[j]) {
+            temp[k++] = sums[i++];
+        } else {
+            temp[k++] = sums[j++];
+        }
+    }
+    while (i <= mid) temp[k++] = sums[i++];
+    while (j <= right) temp[k++] = sums[j++];
+
+    // Copy sorted elements back into the original array
+    for (i = left; i <= right; i++) {
+        sums[i] = temp[i];
+    }
+
+    return count;
+}
+
+int countRangeSum(int* nums, int numsSize, int lower, int upper) {
+    if (numsSize == 0) return 0;
+
+    // Allocate memory for prefix sums (+1 size to handle empty prefix cleanly)
+    long long* sums = (long long*)malloc((numsSize + 1) * sizeof(long long));
+    sums[0] = 0;
+    for (int i = 0; i < numsSize; i++) {
+        sums[i + 1] = sums[i] + nums[i];
+    }
+
+    // Temporary array allocation for merge sort tracking
+    long long* temp = (long long*)malloc((numsSize + 1) * sizeof(long long));
+
+    int result = (int)mergeAndCount(sums, 0, numsSize, lower, upper, temp);
+
+    free(sums);
+    free(temp);
+
+    return result;
+}
