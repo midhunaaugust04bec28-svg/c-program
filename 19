@@ -1,0 +1,108 @@
+#include <stdbool.h>
+#include <stdlib.h>
+#define HASH_SIZE 2048
+typedef struct HashNode {
+    long long bucketId;
+    long long value;
+    struct HashNode* next;
+} HashNode;
+
+long long getBucketId(long long val, long long width) {
+    return val < 0 ? (val + 1) / width - 1 : val / width;
+}
+
+
+void insert(HashNode** hashTable, long long bucketId, long long value) {
+    int hashIndex = abs((int)(bucketId % HASH_SIZE));
+    HashNode* newNode = (HashNode*)malloc(sizeof(HashNode));
+    newNode->bucketId = bucketId;
+    newNode->value = value;
+    newNode->next = hashTable[hashIndex];
+    hashTable[hashIndex] = newNode;
+}
+
+HashNode* search(HashNode** hashTable, long long bucketId) {
+    int hashIndex = abs((int)(bucketId % HASH_SIZE));
+    HashNode* curr = hashTable[hashIndex];
+    while (curr != NULL) {
+        if (curr->bucketId == bucketId) {
+            return curr;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+void deleteNode(HashNode** hashTable, long long bucketId) {
+    int hashIndex = abs((int)(bucketId % HASH_SIZE));
+    HashNode* curr = hashTable[hashIndex];
+    HashNode* prev = NULL;
+    while (curr != NULL) {
+        if (curr->bucketId == bucketId) {
+            if (prev == NULL) {
+                hashTable[hashIndex] = curr->next;
+            } else {
+                prev->next = curr->next;
+            }
+            free(curr);
+            return;
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+}
+
+void freeHashTable(HashNode** hashTable) {
+    for (int i = 0; i < HASH_SIZE; i++) {
+        HashNode* curr = hashTable[i];
+        while (curr != NULL) {
+            HashNode* temp = curr;
+            curr = curr->next;
+            free(temp);
+        }
+        hashTable[i] = NULL;
+    }
+}
+
+bool containsNearbyAlmostDuplicate(int* nums, int numsSize, int indexDiff, int valueDiff) {
+    if (numsSize < 2 || indexDiff < 1 || valueDiff < 0) return false;
+
+    HashNode* hashTable[HASH_SIZE] = {NULL};
+    long long width = (long long)valueDiff + 1;
+
+    for (int i = 0; i < numsSize; i++) {
+        long long val = nums[i];
+        long long bucketId = getBucketId(val, width);
+
+       
+        if (search(hashTable, bucketId) != NULL) {
+            freeHashTable(hashTable);
+            return true;
+        }
+
+        HashNode* leftNeighbor = search(hashTable, bucketId - 1);
+        if (leftNeighbor != NULL && abs(val - leftNeighbor->value) <= valueDiff) {
+            freeHashTable(hashTable);
+            return true;
+        }
+
+        HashNode* rightNeighbor = search(hashTable, bucketId + 1);
+        if (rightNeighbor != NULL && abs(val - rightNeighbor->value) <= valueDiff) {
+            freeHashTable(hashTable);
+            return true;
+        }
+
+        insert(hashTable, bucketId, val);
+
+        if (i >= indexDiff) {
+            long long oldBucketId = getBucketId(nums[i - indexDiff], width);
+            deleteNode(hashTable, oldBucketId);
+        }
+    }
+
+    freeHashTable(hashTable);
+    return false;
+}
+
+
+
