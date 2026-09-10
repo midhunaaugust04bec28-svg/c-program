@@ -1,0 +1,144 @@
+#include <stdlib.h>
+#include <string.h>
+typedef struct {
+    int x;
+    int height; 
+} Event;
+
+int compareEvents(const void* a, const void* b) {
+    Event* e1 = (Event*)a;
+    Event* e2 = (Event*)b;
+    if (e1->x != e2->x) {
+        return (e1->x > e2->x) - (e1->x < e2->x);
+    }
+
+    return (e1->height > e2->height) - (e1->height < e2->height);
+}
+
+typedef struct {
+    int* data;
+    int size;
+    int capacity;
+} MaxHeap;
+
+MaxHeap* createHeap(int capacity) {
+    MaxHeap* heap = (MaxHeap*)malloc(sizeof(MaxHeap));
+    heap->data = (int*)malloc((capacity + 1) * sizeof(int));
+    heap->size = 0;
+    heap->capacity = capacity;
+    heap->data[0] = 0; 
+    return heap;
+}
+
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void pushHeap(MaxHeap* heap, int val) {
+    heap->data[++(heap->size)] = val;
+    int curr = heap->size;
+    while (curr > 1 && heap->data[curr] > heap->data[curr / 2]) {
+        swap(&heap->data[curr], &heap->data[curr / 2]);
+        curr = curr / 2;
+    }
+}
+
+void removeHeap(MaxHeap* heap, int val) {
+    int idx = -1;
+    for (int i = 1; i <= heap->size; i++) {
+        if (heap->data[i] == val) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx == -1) return;
+    
+    heap->data[idx] = heap->data[heap->size--];
+    int curr = idx;
+    while (curr * 2 <= heap->size) {
+        int maxChild = curr * 2;
+        if (maxChild + 1 <= heap->size && heap->data[maxChild + 1] > heap->data[maxChild]) {
+            maxChild++;
+        }
+        if (heap->data[curr] >= heap->data[maxChild]) break;
+        swap(&heap->data[curr], &heap->data[maxChild]);
+        curr = maxChild;
+    }
+    
+   
+    while (curr > 1 && heap->data[curr] > heap->data[curr / 2]) {
+        swap(&heap->data[curr], &heap->data[curr / 2]);
+        curr = curr / 2;
+    }
+}
+
+int getMax(MaxHeap* heap) {
+    return heap->size == 0 ? 0 : heap->data[1];
+}
+
+void freeHeap(MaxHeap* heap) {
+    free(heap->data);
+    free(heap);
+}
+
+
+int** getSkyline(int** buildings, int buildingsSize, int* buildingsColSize, int* returnSize, int** returnColumnSizes) {
+    if (buildingsSize == 0) {
+        *returnSize = 0;
+        *returnColumnSizes = NULL;
+        return NULL;
+    }
+
+    int eventCount = buildingsSize * 2;
+    Event* events = (Event*)malloc(eventCount * sizeof(Event));
+    
+    int idx = 0;
+    for (int i = 0; i < buildingsSize; i++) {
+        events[idx].x = buildings[i][0];
+        events[idx].height = -buildings[i][2]; 
+        idx++;
+        events[idx].x = buildings[i][1];
+        events[idx].height = buildings[i][2];  
+        idx++;
+    }
+
+   
+    qsort(events, eventCount, sizeof(Event), compareEvents);
+
+    
+    int** result = (int**)malloc(eventCount * sizeof(int*));
+    *returnColumnSizes = (int*)malloc(eventCount * sizeof(int));
+    
+    MaxHeap* heap = createHeap(eventCount);
+    int prevMax = 0;
+    int rSize = 0;
+
+    for (int i = 0; i < eventCount; i++) {
+        if (events[i].height < 0) {
+            pushHeap(heap, -events[i].height);
+        } else {
+            removeHeap(heap, events[i].height);
+        }
+
+        int currMax = getMax(heap);
+        if (currMax != prevMax) {
+            result[rSize] = (int*)malloc(2 * sizeof(int));
+            result[rSize][0] = events[i].x;
+            result[rSize][1] = currMax;
+            (*returnColumnSizes)[rSize] = 2;
+            rSize++;
+            prevMax = currMax;
+        }
+    }
+
+    result = (int**)realloc(result, rSize * sizeof(int*));
+    *returnColumnSizes = (int*)realloc(*returnColumnSizes, rSize * sizeof(int));
+    *returnSize = rSize;
+
+    free(events);
+    freeHeap(heap);
+
+    return result;
+}
