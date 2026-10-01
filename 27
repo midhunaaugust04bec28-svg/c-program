@@ -1,0 +1,54 @@
+/**
+ * Definition for a Node.
+ * struct Node {
+ *     int val;
+ *     struct Node *next;
+ *     struct Node *random;
+ * };
+ */
+
+struct Node* copyRandomList(struct Node* head) {
+    if (!head) {
+        return NULL;
+    }
+
+    struct Node* curr = head;
+
+    // Step 1: Create a copy of each node and insert it right after the original node.
+    while (curr) {
+        struct Node* next_orig = curr->next;
+        struct Node* copy = (struct Node*)malloc(sizeof(struct Node));
+        copy->val = curr->val;
+        copy->next = next_orig;
+        copy->random = NULL;
+        
+        curr->next = copy;
+        curr = next_orig;
+    }
+
+    // Step 2: Assign random pointers for the copied nodes.
+    curr = head;
+    while (curr) {
+        if (curr->random) {
+            curr->next->random = curr->random->next;
+        }
+        curr = curr->next->next;
+    }
+
+    // Step 3: Separate the interweaving lists to restore the original and extract the copy.
+    curr = head;
+    struct Node* copy_head = head->next;
+    struct Node* curr_copy = copy_head;
+
+    while (curr) {
+        curr->next = curr->next->next;
+        curr = curr->next;
+        
+        if (curr_copy->next) {
+            curr_copy->next = curr_copy->next->next;
+            curr_copy = curr_copy->next;
+        }
+    }
+
+    return copy_head;
+}
