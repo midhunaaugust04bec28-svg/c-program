@@ -1,0 +1,82 @@
+#include <stdlib.h>
+#include <string.h>
+
+/**
+ * *********************************************************************
+ * // This is the MountainArray's API interface.
+ * // You should not implement it, or speculate about its implementation
+ * *********************************************************************
+ *
+ * int get(MountainArray *, int index);
+ * int length(MountainArray *);
+ */
+
+// Helper function to safely fetch with a cache to optimize API budget calls
+int getCached(MountainArray* mountainArr, int index, int* cache) {
+    if (cache[index] != -1) {
+        return cache[index];
+    }
+    cache[index] = get(mountainArr, index);
+    return cache[index];
+}
+
+int findInMountainArray(int target, MountainArray* mountainArr) {
+    int n = length(mountainArr);
+    
+    // Allocate a cache array initialized to -1 (indicating unvisited)
+    int* cache = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        cache[i] = -1;
+    }
+    
+    // Step 1: Binary Search to find the Peak element
+    int low = 0;
+    int high = n - 1;
+    int peak = 0;
+    
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (getCached(mountainArr, mid, cache) < getCached(mountainArr, mid + 1, cache)) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    peak = low;
+    
+    // Step 2: Search the ascending (left) slope for the target
+    low = 0;
+    high = peak;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        int val = getCached(mountainArr, mid, cache);
+        if (val == target) {
+            free(cache);
+            return mid;
+        } else if (val < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    // Step 3: Search the descending (right) slope for the target
+    low = peak + 1;
+    high = n - 1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        int val = getCached(mountainArr, mid, cache);
+        if (val == target) {
+            free(cache);
+            return mid;
+        } else if (val > target) { // Reversed comparison for descending order
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    // Clean up allocated cache memory if target isn't found
+    free(cache);
+    return -1;
+}
