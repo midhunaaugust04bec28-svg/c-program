@@ -1,0 +1,51 @@
+#include <string.h>
+#include <limits.h>
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+int minimumXORSum(int* nums1, int nums1Size, int* nums2, int nums2Size) {
+    int n = nums1Size;
+    int num_states = 1 << n;
+    
+    // dp[mask] stores the minimum XOR sum using a specific subset of elements from nums2
+    int dp[num_states];
+    
+    // Initialize the DP array with a large value
+    for (int i = 0; i < num_states; i++) {
+        dp[i] = INT_MAX;
+    }
+    
+    // Base case: 0 elements chosen yields 0 XOR sum
+    dp[0] = 0;
+    
+    // Iterate through all possible bitmask states
+    for (int mask = 0; mask < num_states; mask++) {
+        if (dp[mask] == INT_MAX) continue;
+        
+        // Count how many elements have been matched so far.
+        // The number of set bits in 'mask' tells us the current index in nums1.
+        int idx = 0;
+        for (int i = 0; i < n; i++) {
+            if ((mask >> i) & 1) {
+                idx++;
+            }
+        }
+        
+        // If all elements are matched, we are done
+        if (idx == n) break;
+        
+        // Try matching nums1[idx] with an available element in nums2
+        for (int i = 0; i < n; i++) {
+            // Check if the i-th element of nums2 is NOT yet taken
+            if (((mask >> i) & 1) == 0) {
+                int next_mask = mask | (1 << i);
+                int xor_val = nums1[idx] ^ nums2[i];
+                
+                dp[next_mask] = MIN(dp[next_mask], dp[mask] + xor_val);
+            }
+        }
+    }
+    
+    // The state where all bits are 1 represents matching all elements
+    return dp[num_states - 1];
+}
